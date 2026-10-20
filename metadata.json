@@ -1,0 +1,7 @@
+{
+  "name": "Taxi Alexandria 3D Simulator",
+  "description": "محاكي قيادة تاكسي الإسكندرية الواقعي ثلاثي الأبعاد مع كورنيش الإسكندرية والمعالم الحقيقية وحركة مرور ومهام ركاب ونظام عداد.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
