@@ -37,7 +37,14 @@ export class TaxiPhysicsEngine {
 
   private lastCollisionTime: number = 0;
 
-  constructor() {}
+  constructor(vehicleMode: VehicleMode = 'taxi') {
+    if (vehicleMode === 'microbus') {
+      // Start at the east end of the line, facing west toward Bahary and Qaitbay.
+      this.state.x = 735;
+      this.state.z = -62;
+      this.state.yaw = -Math.PI / 2;
+    }
+  }
 
   public update(
     delta: number,
