@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AlexandriaGame } from './components/AlexandriaGame';
-import { TaxiStats } from './types/game';
+import { TaxiStats, VehicleMode } from './types/game';
 import { soundEngine } from './audio/soundEngine';
 import { Play, Sparkles, Trophy, MapPin, Gauge, Download, Rocket } from 'lucide-react';
 
@@ -26,6 +26,7 @@ const DEFAULT_STATS: TaxiStats = {
 
 export default function App() {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [vehicleMode, setVehicleMode] = useState<VehicleMode>('taxi');
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState<boolean>(false);
   const [stats, setStats] = useState<TaxiStats>(() => {
@@ -82,6 +83,7 @@ export default function App() {
   if (isPlaying) {
     return (
       <AlexandriaGame
+        vehicleMode={vehicleMode}
         stats={stats}
         setStats={setStats}
         onSaveProgress={saveProgress}
@@ -108,10 +110,10 @@ export default function App() {
 
           <div className="text-center">
             <h1 className="font-kufi text-4xl font-black tracking-tight text-amber-400 md:text-6xl">
-              تاكسي الإسكندرية
+              {vehicleMode === 'microbus' ? 'ميكروباص الإسكندرية' : 'تاكسي الإسكندرية'}
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-slate-300 md:text-base">
-              تجربة قيادة ساحلية واقعية: كورنيش الإسكندرية، شوارع ليلية، رحلات حقيقية، وبطارية كاملة من التحديات من أول ثانية حتى آخر مشوار.
+              اختَر مركبتك وابدأ القيادة على كورنيش الإسكندرية، من المنتزه شرقًا حتى بحري وقلعة قايتباي غربًا، مع شوارع ومعالم ومهام قيادة.
             </p>
           </div>
 
@@ -162,13 +164,44 @@ export default function App() {
             </div>
           )}
 
+          <div className="mt-7 grid grid-cols-2 gap-3" aria-label="اختيار المركبة">
+            <button
+              type="button"
+              aria-pressed={vehicleMode === 'taxi'}
+              onClick={() => setVehicleMode('taxi')}
+              className={`rounded-2xl border-2 p-4 text-right transition active:scale-[0.99] ${
+                vehicleMode === 'taxi'
+                  ? 'border-amber-400 bg-amber-400/15 shadow-lg shadow-amber-500/10'
+                  : 'border-slate-700 bg-slate-950/60 hover:border-slate-500'
+              }`}
+            >
+              <div className="mb-1 text-2xl" aria-hidden="true">🚕</div>
+              <div className="font-black text-amber-300">وضع التاكسي</div>
+              <p className="mt-1 text-[11px] leading-5 text-slate-400">رحلات خاصة وعداد أجرة وترقيات</p>
+            </button>
+            <button
+              type="button"
+              aria-pressed={vehicleMode === 'microbus'}
+              onClick={() => setVehicleMode('microbus')}
+              className={`rounded-2xl border-2 p-4 text-right transition active:scale-[0.99] ${
+                vehicleMode === 'microbus'
+                  ? 'border-sky-400 bg-sky-400/15 shadow-lg shadow-sky-500/10'
+                  : 'border-slate-700 bg-slate-950/60 hover:border-slate-500'
+              }`}
+            >
+              <div className="mb-1 text-2xl" aria-hidden="true">🚐</div>
+              <div className="font-black text-sky-300">وضع الميكروباص</div>
+              <p className="mt-1 text-[11px] leading-5 text-slate-400">خط الكورنيش من المنتزه إلى بحري</p>
+            </button>
+          </div>
+
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button
               onClick={handleStartGame}
               className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-6 py-4 text-lg font-black text-slate-950 shadow-[0_15px_35px_rgba(251,191,36,0.38)] transition hover:scale-[1.01] active:scale-[0.99]"
             >
               <Play className="h-6 w-6 fill-slate-950" />
-              <span>ابدأ اللعبة</span>
+              <span>{vehicleMode === 'microbus' ? 'ابدأ قيادة الميكروباص' : 'ابدأ اللعبة'}</span>
             </button>
 
             {showInstallButton && (
