@@ -75,6 +75,8 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
   const missionRef = useRef<TaxiMissionSystem>(new TaxiMissionSystem());
   const controlsRef = useRef<ControlState>(controls);
   controlsRef.current = controls;
+  const cameraModeRef = useRef<CameraViewMode>(cameraMode);
+  cameraModeRef.current = cameraMode;
 
   const statsRef = useRef<TaxiStats>(stats);
   statsRef.current = stats;
@@ -283,8 +285,10 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
     setAvailablePassenger(missionRef.current.availablePassenger);
 
     // 7. Main Animation & Physics Loop
-    let lastTime = performance.now();
     let animFrameId: number;
+    let lastUiUpdate = 0;
+    let lastCanRefuel = false;
+    let lastRefuelCost = -1;
 
     const clock = new THREE.Clock();
 
@@ -302,17 +306,24 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
         playerTaxiMesh,
         statsRef.current,
         camera,
-        cameraMode
+        cameraModeRef.current
       );
 
       const pState = physics.state;
-      setPlayerPos({
-        x: pState.x,
-        y: pState.y,
-        z: pState.z,
-        speed: pState.speed,
-        yaw: pState.yaw
-      });
+      // Keep simulation/rendering at full frame rate without forcing React to
+      // reconcile the entire HUD on every animation frame.
+      const now = performance.now();
+      if (now - lastUiUpdate >= 100) {
+        lastUiUpdate = now;
+        setPlayerPos({
+          x: pState.x,
+          y: pState.y,
+          z: pState.z,
+          speed: pState.speed,
+          yaw: pState.yaw
+        });
+        setActiveTrip(missionRef.current.activeTrip);
+      }
 
       // Update Headlight Spotlights
       const forwardX = Math.sin(pState.yaw);
@@ -372,7 +383,6 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
         msg => showSay(msg)
       );
 
-      setActiveTrip(missionRef.current.activeTrip);
 
       // 5. Gas Station Proximity Check
       const refuelStatus = missionRef.current.checkGasStationRefuel(
@@ -380,11 +390,15 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
         cityEnv.gasPumps,
         statsRef.current
       );
-      if (refuelStatus && refuelStatus.canRefuel) {
-        setCanRefuel(true);
-        setRefuelCost(refuelStatus.cost);
-      } else {
-        setCanRefuel(false);
+      const canRefuelNow = Boolean(refuelStatus?.canRefuel);
+      const nextRefuelCost = canRefuelNow ? refuelStatus!.cost : 0;
+      if (canRefuelNow !== lastCanRefuel) {
+        lastCanRefuel = canRefuelNow;
+        setCanRefuel(canRefuelNow);
+      }
+      if (canRefuelNow && nextRefuelCost !== lastRefuelCost) {
+        lastRefuelCost = nextRefuelCost;
+        setRefuelCost(nextRefuelCost);
       }
 
       // Render 3D Scene
@@ -413,6 +427,26 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
       cancelAnimationFrame(animFrameId);
       window.removeEventListener('resize', handleResize);
       canvasElem.removeEventListener('webglcontextlost', handleContextLost);
+      if (sayTimeoutRef.current !== null) {
+        window.clearTimeout(sayTimeoutRef.current);
+        sayTimeoutRef.current = null;
+      }
+      // Release scene-owned GPU resources when settings trigger a renderer rebuild
+      // or the player leaves the game, preventing WebGL memory growth.
+      scene.traverse(object => {
+        const mesh = object as THREE.Mesh;
+        if (mesh.geometry) mesh.geometry.dispose();
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : mesh.material ? [mesh.material] : [];
+        materials.forEach(material => {
+          for (const value of Object.values(material)) {
+            if (value instanceof THREE.Texture) value.dispose();
+          }
+          material.dispose();
+        });
+      });
+      scene.environment?.dispose();
       renderer.dispose();
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
