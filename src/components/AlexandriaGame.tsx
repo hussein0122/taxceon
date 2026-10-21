@@ -51,6 +51,7 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
   const [refuelCost, setRefuelCost] = useState<number>(0);
   const [isGarageOpen, setIsGarageOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [gameError, setGameError] = useState<string | null>(null);
 
   const [graphicSettings, setGraphicSettings] = useState<GraphicSettings>({
     shadows: true,
@@ -176,6 +177,9 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
     const container = mountRef.current;
     if (!container) return;
 
+    setGameError(null);
+    let rendererForError: THREE.WebGLRenderer | null = null;
+    try {
     soundEngine.init();
 
     // 1. Scene, Camera, Renderer
@@ -187,8 +191,11 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
       graphicSettings.drawDistance
     );
 
+    const compactDevice = window.matchMedia('(max-width: 768px)').matches;
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
+    rendererForError = renderer;
+    // Keep high detail on desktop and cap render cost on smaller screens to avoid GPU resets.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, compactDevice ? 1.35 : 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -210,7 +217,7 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
     const sunLight = new THREE.DirectionalLight(0xffedd5, 1.4);
     sunLight.position.set(120, 160, 80);
     sunLight.castShadow = graphicSettings.shadows;
-    sunLight.shadow.mapSize.set(2048, 2048);
+    sunLight.shadow.mapSize.set(compactDevice ? 1024 : 2048, compactDevice ? 1024 : 2048);
     sunLight.shadow.camera.left = -220;
     sunLight.shadow.camera.right = 220;
     sunLight.shadow.camera.top = 220;
@@ -294,7 +301,7 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
 
     const renderLoop = () => {
       animFrameId = requestAnimationFrame(renderLoop);
-
+      try {
       const delta = Math.min(clock.getDelta(), 0.05);
       const elapsedTime = clock.getElapsedTime();
 
@@ -403,6 +410,12 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
 
       // Render 3D Scene
       renderer.render(scene, camera);
+      } catch (error) {
+        cancelAnimationFrame(animFrameId);
+        console.error('Alexandria game frame failed:', error);
+        const detail = error instanceof Error ? error.message : String(error);
+        setGameError('توقفت دورة الرسوم بسبب خطأ: ' + detail);
+      }
     };
 
     renderLoop();
@@ -419,6 +432,7 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
     const handleContextLost = (e: Event) => {
       e.preventDefault();
       cancelAnimationFrame(animFrameId);
+      setGameError('فقد المتصفح الاتصال بكارت الشاشة. أعد تشغيل اللعبة، وإذا تكررت المشكلة حدّث تعريف كارت الشاشة.');
     };
     const canvasElem = renderer.domElement;
     canvasElem.addEventListener('webglcontextlost', handleContextLost);
@@ -452,6 +466,16 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
         container.removeChild(renderer.domElement);
       }
     };
+    } catch (error) {
+      console.error('Alexandria game initialization failed:', error);
+      if (rendererForError) {
+        const failedCanvas = rendererForError.domElement;
+        rendererForError.dispose();
+        if (container.contains(failedCanvas)) container.removeChild(failedCanvas);
+      }
+      const detail = error instanceof Error ? error.message : String(error);
+      setGameError('تعذر تهيئة مشهد اللعبة ثلاثي الأبعاد: ' + detail);
+    }
   }, [timeOfDay, graphicSettings.shadows, graphicSettings.trafficDensity]);
 
   // Handle passenger acceptance
@@ -510,6 +534,28 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
     <div className="relative w-full h-full overflow-hidden select-none touch-none bg-slate-950">
       {/* 3D WebGL Canvas Container */}
       <div ref={mountRef} className="absolute inset-0 w-full h-full" />
+
+      {gameError && (
+        <div
+          role="alert"
+          className="absolute inset-0 z-[100] flex items-center justify-center bg-slate-950/95 p-5 text-slate-100"
+          dir="rtl"
+        >
+          <div className="w-full max-w-lg rounded-3xl border border-amber-500/40 bg-slate-900 p-6 text-center shadow-2xl">
+            <h2 className="mb-3 text-2xl font-black text-amber-400">تعذر تشغيل الجرافيك ثلاثي الأبعاد</h2>
+            <p className="mb-3 text-sm leading-7 text-slate-200">{gameError}</p>
+            <p className="mb-5 text-xs leading-6 text-slate-400">
+              حدّث تعريف كارت الشاشة وأغلق برامج تسجيل الشاشة التي تستخدم تسريع الرسوم، ثم أعد المحاولة.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full rounded-xl bg-amber-400 px-5 py-3 font-black text-slate-950 hover:bg-amber-300"
+            >
+              إعادة تشغيل اللعبة
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating Arabic Game HUD Overlay */}
       <GameHUD
