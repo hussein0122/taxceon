@@ -181,35 +181,37 @@ export function buildAlexandriaCity(scene: THREE.Scene): CityEnvironment {
 
       // Lane markings
       const numLanes = road.lanes ?? road.points[0]?.lanes ?? 2;
-      if (numLanes >= 4) {
-        // Double solid yellow center divider
-        const yellowLine1 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, len), yellowLineMat);
-        yellowLine1.position.set(mx - Math.cos(angle) * 0.2, 0.11, mz + Math.sin(angle) * 0.2);
-        yellowLine1.rotation.y = angle;
-        scene.add(yellowLine1);
+      if (numLanes >= 2) {
+        // Center line is visible on ordinary two-lane Alexandria streets as well.
+        if (numLanes >= 4) {
+          for (const offset of [-0.2, 0.2]) {
+            const centerLine = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.025, len), yellowLineMat);
+            centerLine.position.set(mx - Math.cos(angle) * offset, 0.115, mz + Math.sin(angle) * offset);
+            centerLine.rotation.y = angle;
+            scene.add(centerLine);
+          }
+        } else {
+          const centerLine = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.025, len), yellowLineMat);
+          centerLine.position.set(mx, 0.115, mz);
+          centerLine.rotation.y = angle;
+          scene.add(centerLine);
+        }
 
-        const yellowLine2 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, len), yellowLineMat);
-        yellowLine2.position.set(mx + Math.cos(angle) * 0.2, 0.11, mz - Math.sin(angle) * 0.2);
-        yellowLine2.rotation.y = angle;
-        scene.add(yellowLine2);
-
-        // Dashed lane lines
-        const numDashes = Math.floor(len / 7);
-        for (let d = 0; d < numDashes; d++) {
-          const t = (d + 0.5) / numDashes;
-          const px = p1.x + dx * t;
-          const pz = p1.z + dz * t;
-          const laneOffset = width * 0.28;
-
-          const dashL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 3.2), dashMat);
-          dashL.position.set(px - Math.cos(angle) * laneOffset, 0.11, pz + Math.sin(angle) * laneOffset);
-          dashL.rotation.y = angle;
-          scene.add(dashL);
-
-          const dashR = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 3.2), dashMat);
-          dashR.position.set(px + Math.cos(angle) * laneOffset, 0.11, pz - Math.sin(angle) * laneOffset);
-          dashR.rotation.y = angle;
-          scene.add(dashR);
+        // Broken white lane markings on wider roads.
+        if (numLanes >= 4) {
+          const numDashes = Math.max(1, Math.floor(len / 7));
+          for (let d = 0; d < numDashes; d++) {
+            const t = (d + 0.5) / numDashes;
+            const px = p1.x + dx * t;
+            const pz = p1.z + dz * t;
+            const laneOffset = width * 0.28;
+            for (const side of [-1, 1]) {
+              const dash = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.025, 3.2), dashMat);
+              dash.position.set(px - Math.cos(angle) * laneOffset * side, 0.115, pz + Math.sin(angle) * laneOffset * side);
+              dash.rotation.y = angle;
+              scene.add(dash);
+            }
+          }
         }
       }
 
