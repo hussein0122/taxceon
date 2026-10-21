@@ -181,7 +181,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             <span className="text-amber-400">ج.م</span>
           </div>
           <div className="font-kufi text-3xl font-black text-amber-400 tracking-tight">
-            {activeTrip ? activeTrip.currentFare.toFixed(1) : '١٥٫٠'}
+            {activeTrip ? activeTrip.currentFare.toFixed(1) : vehicleMode === 'microbus' ? '٥٫٠' : '١٥٫٠'}
           </div>
           <div className="flex items-center justify-between text-[11px] text-slate-300 mt-1 border-t border-slate-800 pt-1">
             <span>
