@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Taxi icon">
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="52" fill="#020817"/>
+  <circle cx="128" cy="128" r="102" fill="url(#bg)" opacity="0.18"/>
+  <path d="M52 103c0-28 20-48 49-48h54c29 0 49 20 48 48l-3 42c-1 17-15 31-33 31H88c-17 0-31-14-33-31l-3-42Z" fill="url(#body)"/>
+  <path d="M66 96h124l10 18H56l10-18Z" fill="#facc15"/>
+  <path d="M86 104h84v18H86zm-20 37h124v18H66zm17-68h12v22H83zm78 0h12v22h-12z" fill="#0f172a" opacity="0.9"/>
+  <circle cx="90" cy="158" r="18" fill="#020817"/>
+  <circle cx="166" cy="158" r="18" fill="#020817"/>
+  <circle cx="90" cy="158" r="8" fill="#facc15"/>
+  <circle cx="166" cy="158" r="8" fill="#facc15"/>
+  <path d="M108 69h40l-8 18h-24l-8-18Z" fill="#f59e0b"/>
+  <path d="M88 71v-8c0-7 5-12 12-12h56c7 0 12 5 12 12v8" fill="none" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+</svg>

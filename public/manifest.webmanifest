@@ -1,0 +1,18 @@
+{
+  "name": "Taxi Alexandria 3D Simulator",
+  "short_name": "Alexandria Taxi",
+  "description": "محاكي قيادة تاكسي الإسكندرية الواقعي ثلاثي الأبعاد",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020817",
+  "theme_color": "#020817",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

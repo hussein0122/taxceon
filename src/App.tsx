@@ -1,18 +1,18 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect } from 'react';
 import { AlexandriaGame } from './components/AlexandriaGame';
 import { TaxiStats } from './types/game';
 import { soundEngine } from './audio/soundEngine';
-import { Play, Sparkles, Trophy, MapPin, Gauge } from 'lucide-react';
+import { Play, Sparkles, Trophy, MapPin, Gauge, Download, Rocket } from 'lucide-react';
 
 const STORAGE_KEY = 'alexandria_taxi_save_v1';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string; }>;
+}
+
 const DEFAULT_STATS: TaxiStats = {
-  money: 50, // Starting seed money for gas
+  money: 50,
   tripsCompleted: 0,
   ratingAverage: 5.0,
   fuel: 100,
@@ -26,6 +26,8 @@ const DEFAULT_STATS: TaxiStats = {
 
 export default function App() {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallButton, setShowInstallButton] = useState<boolean>(false);
   const [stats, setStats] = useState<TaxiStats>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -35,6 +37,19 @@ export default function App() {
     }
     return DEFAULT_STATS;
   });
+
+  useEffect(() => {
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+      setShowInstallButton(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    };
+  }, []);
 
   const saveProgress = () => {
     try {
@@ -54,6 +69,16 @@ export default function App() {
     setIsPlaying(true);
   };
 
+  const handleInstallApp = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      setShowInstallButton(false);
+    }
+    setInstallPrompt(null);
+  };
+
   if (isPlaying) {
     return (
       <AlexandriaGame
@@ -65,88 +90,102 @@ export default function App() {
   }
 
   return (
-    <div className="relative w-full h-full min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 overflow-y-auto font-sans" dir="rtl">
-      {/* Background Gradient & Subtle Grid */}
-      <div className="absolute inset-0 bg-radial from-sky-950/40 via-slate-950 to-slate-950 pointer-events-none" />
+    <div className="relative w-full h-full min-h-screen overflow-hidden bg-slate-950 text-slate-100" dir="rtl">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.2),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(14,165,233,0.2),_transparent_30%),linear-gradient(180deg,_#020817_0%,_#0f172a_100%)]" />
+      <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(rgba(148,163,184,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.12) 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
 
-      {/* Main Hero Start Card */}
-      <div className="relative z-10 max-w-xl w-full bg-slate-900/90 border border-amber-500/40 rounded-3xl p-6 md:p-9 shadow-2xl backdrop-blur-xl text-center flex flex-col items-center gap-6">
-        {/* Alexandria Taxi Badge */}
-        <div className="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3.5 py-1.5 rounded-full">
-          <Sparkles className="w-4 h-4 text-amber-400" />
-          <span>محاكي قيادة واقعي ثلاثي الأبعاد 3D</span>
-        </div>
+      <div className="relative z-10 flex min-h-screen items-center justify-center p-4 md:p-8">
+        <div className="w-full max-w-2xl rounded-[32px] border border-amber-400/30 bg-slate-900/80 p-6 shadow-[0_0_48px_rgba(251,191,36,0.18)] backdrop-blur-xl md:p-9">
+          <div className="mb-6 flex items-center justify-between gap-3 text-xs font-bold text-amber-300">
+            <div className="flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5">
+              <Sparkles className="h-4 w-4 text-amber-400" />
+              <span>محاكي قيادة واقعي 3D</span>
+            </div>
+            <div className="rounded-full border border-sky-400/30 bg-sky-500/10 px-3 py-1.5 text-sky-300">
+              Alexandria Taxi Pro
+            </div>
+          </div>
 
-        {/* Title */}
-        <div>
-          <h1 className="font-kufi text-4xl md:text-5xl font-black text-amber-400 tracking-tight leading-tight">
-            تاكسي الإسكندرية
-          </h1>
-          <p className="text-slate-300 text-sm md:text-base mt-2 leading-relaxed max-w-md mx-auto">
-            عش أجواء عروس البحر الأبيض المتوسط! قُد تاكسي الإسكندرية الأصفر والأسود الشهير، استقبل الزبائن على الكورنيش، واكتشف كوبري ستانلي، قلعة قايتباي ومكتبة الإسكندرية بنظام عداد حقيقي وحركة مرور واقعية.
+          <div className="text-center">
+            <h1 className="font-kufi text-4xl font-black tracking-tight text-amber-400 md:text-6xl">
+              تاكسي الإسكندرية
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-slate-300 md:text-base">
+              تجربة قيادة ساحلية واقعية: كورنيش الإسكندرية، شوارع ليلية، رحلات حقيقية، وبطارية كاملة من التحديات من أول ثانية حتى آخر مشوار.
+            </p>
+          </div>
+
+          <div className="mt-7 grid gap-2.5 text-right sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-3">
+              <div className="mb-1 flex items-center gap-2 text-amber-300">
+                <MapPin className="h-4 w-4" />
+                <span className="text-sm font-bold">معالم حقيقية</span>
+              </div>
+              <p className="text-[11px] text-slate-400">ستانلي · قايتباي · الرمل</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-3">
+              <div className="mb-1 flex items-center gap-2 text-amber-300">
+                <Gauge className="h-4 w-4" />
+                <span className="text-sm font-bold">فيزياء قيادة</span>
+              </div>
+              <p className="text-[11px] text-slate-400">تسارع · انزلاق · هاندبريك</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-3">
+              <div className="mb-1 flex items-center gap-2 text-amber-300">
+                <Trophy className="h-4 w-4" />
+                <span className="text-sm font-bold">مهام ركاب</span>
+              </div>
+              <p className="text-[11px] text-slate-400">عدّاد حقيقي + بقشيش + تقييم</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-3">
+              <div className="mb-1 flex items-center gap-2 text-amber-300">
+                <Rocket className="h-4 w-4" />
+                <span className="text-sm font-bold">أداء عالي</span>
+              </div>
+              <p className="text-[11px] text-slate-400">تجربة سلسة للكمبيوتر والموبايل</p>
+            </div>
+          </div>
+
+          {stats.tripsCompleted > 0 && (
+            <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950/70 p-3 text-xs text-slate-200">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-slate-400">التقدم المحفوظ:</span>
+                <div className="flex flex-wrap items-center gap-3 font-bold">
+                  <span>{stats.tripsCompleted} مشوار مكتمل</span>
+                  <span className="text-amber-400">{stats.money} ج.م</span>
+                  <span>★ {stats.ratingAverage.toFixed(1)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <button
+              onClick={handleStartGame}
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-6 py-4 text-lg font-black text-slate-950 shadow-[0_15px_35px_rgba(251,191,36,0.38)] transition hover:scale-[1.01] active:scale-[0.99]"
+            >
+              <Play className="h-6 w-6 fill-slate-950" />
+              <span>ابدأ اللعبة</span>
+            </button>
+
+            {showInstallButton && (
+              <button
+                onClick={handleInstallApp}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-sky-400/40 bg-sky-500/10 px-5 py-4 text-base font-bold text-sky-200 transition hover:bg-sky-500/20"
+              >
+                <Download className="h-5 w-5" />
+                تثبيت التطبيق
+              </button>
+            )}
+          </div>
+
+          <p className="mt-5 text-center text-[11px] text-slate-400">
+            يدعم الكمبيوتر (الأسهم أو WASD · Space = هاندبريك · H = كلاكس · C = كاميرا) وأجهزة الموبايل عبر اللمس.
           </p>
         </div>
-
-        {/* Key Features Pill Strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 w-full text-right text-xs">
-          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800 flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-              <MapPin className="w-3.5 h-3.5" />
-              <span>معالم حقيقية</span>
-            </div>
-            <span className="text-[11px] text-slate-400">ستانلي وقايتباي والرمل</span>
-          </div>
-
-          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800 flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-              <Gauge className="w-3.5 h-3.5" />
-              <span>فيزياء قيادة</span>
-            </div>
-            <span className="text-[11px] text-slate-400">تسارع وانعطاف وتخميس</span>
-          </div>
-
-          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800 flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-              <Trophy className="w-3.5 h-3.5" />
-              <span>مهام ركاب</span>
-            </div>
-            <span className="text-[11px] text-slate-400">عداد حقيقي وبقشيش</span>
-          </div>
-
-          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800 flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>دورة ليل ونهار</span>
-            </div>
-            <span className="text-[11px] text-slate-400">غروب ساحلي وأضواء ليل</span>
-          </div>
-        </div>
-
-        {/* Saved Career Preview */}
-        {stats.tripsCompleted > 0 && (
-          <div className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3 flex items-center justify-between text-xs">
-            <span className="text-slate-400">التقدم المحفوظ:</span>
-            <div className="flex items-center gap-3 font-bold text-slate-200">
-              <span>{stats.tripsCompleted} مشوار منجز</span>
-              <span className="text-amber-400 font-kufi text-sm">{stats.money} ج.م</span>
-              <span>★ {stats.ratingAverage.toFixed(1)}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Start Game Action */}
-        <button
-          onClick={handleStartGame}
-          className="w-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 active:scale-98 text-slate-950 font-black py-4 px-6 rounded-2xl text-lg shadow-xl shadow-amber-500/25 transition-all flex items-center justify-center gap-3 cursor-pointer"
-        >
-          <Play className="w-6 h-6 fill-slate-950" />
-          <span>ابدأ الشغل والقيادة على الكورنيش</span>
-        </button>
-
-        {/* Controls Note */}
-        <p className="text-[11px] text-slate-400 text-center">
-          يدعم الكمبيوتر (الأسهم أو WASD · Space = هاندبريك · H = كلاكس · C = كاميرا) وأجهزة الموبايل عبر اللمس.
-        </p>
       </div>
     </div>
   );
