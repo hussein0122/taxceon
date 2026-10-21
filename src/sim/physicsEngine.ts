@@ -188,10 +188,7 @@ export class TaxiPhysicsEngine {
     const speedRatio = this.state.speed / maxSpeed;
     soundEngine.updateEnginePitch(speedRatio, controls.gas && hasFuel);
 
-    // Horn trigger
-    if (controls.horn) {
-      soundEngine.playHorn();
-    }
+    // Horn audio is triggered on key/pointer press, not every simulation frame.
 
     // 8. Dynamic Camera Modes
     this.updateCamera(camera, cameraMode, dt);
