@@ -1,14 +1,16 @@
 {
-  "name": "react-example",
+  "name": "taxi-alexandria-3d",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "desktop:dev": "concurrently -k \"npm:dev\" \"wait-on tcp:3000 && electron .\"",
+    "build:desktop": "vite build --base=./ && electron-builder --win nsis --x64"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -35,6 +37,47 @@
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "electron": "44.9.1",
+    "electron-builder": "26.16.1",
+    "concurrently": "^9.2.1",
+    "wait-on": "^8.0.4"
+  },
+  "description": "Taxi Alexandria 3D driving simulator",
+  "main": "desktop/main.cjs",
+  "build": {
+    "appId": "com.husseinsead.taxialexandria3d",
+    "productName": "Taxi Alexandria 3D",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "desktop/main.cjs",
+      "package.json"
+    ],
+    "asar": true,
+    "compression": "maximum",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Taxi-Alexandria-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "تاكسي الإسكندرية 3D",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
+    }
   }
 }
