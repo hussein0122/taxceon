@@ -75,7 +75,7 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
   });
 
   // Engine refs
-  const physicsRef = useRef<TaxiPhysicsEngine>(new TaxiPhysicsEngine());
+  const physicsRef = useRef<TaxiPhysicsEngine>(new TaxiPhysicsEngine(vehicleMode));
   const missionRef = useRef<TaxiMissionSystem>(new TaxiMissionSystem());
   const controlsRef = useRef<ControlState>(controls);
   controlsRef.current = controls;
