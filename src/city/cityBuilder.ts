@@ -546,6 +546,10 @@ export function buildAlexandriaCity(scene: THREE.Scene): CityEnvironment {
     color: 0x1e293b,
     roughness: 0.2
   });
+  const balconyMat = new THREE.MeshStandardMaterial({ color: 0xd6d3d1, roughness: 0.62, metalness: 0.18 });
+  const sillMat = new THREE.MeshStandardMaterial({ color: 0xb8a58b, roughness: 0.9 });
+  const rooftopRoomMat = new THREE.MeshStandardMaterial({ color: 0xc8bba5, roughness: 0.92 });
+  const waterTankMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.38, metalness: 0.22 });
 
   const egyptianStores = [
     { name: 'مقهى الكورنيش العريق', sub: 'قهوة وشاي على البحر', bg: '#0369a1' },
@@ -556,7 +560,35 @@ export function buildAlexandriaCity(scene: THREE.Scene): CityEnvironment {
     { name: 'كافيه البورصة وسعد زغلول', sub: 'ملتقى المثقفين والفنانين', bg: '#831843' }
   ];
 
-  // Populate realistic street blocks south of Corniche & along inland roads
+  // Reuse geometry and batch repeated facade details. Creating thousands of
+  // individual Mesh objects caused long stalls / black screens on game start.
+  const windowGeo = new THREE.BoxGeometry(1.45, 1.55, 0.12);
+  const sideWindowGeo = new THREE.BoxGeometry(0.12, 1.55, 1.35);
+  const sillGeo = new THREE.BoxGeometry(1.72, 0.12, 0.24);
+  const balconySlabGeo = new THREE.BoxGeometry(2.25, 0.14, 0.72);
+  const balconyRailGeo = new THREE.BoxGeometry(2.25, 0.12, 0.08);
+  const balconySideGeo = new THREE.BoxGeometry(0.08, 0.48, 0.72);
+  const waterTankGeo = new THREE.CylinderGeometry(0.85, 0.85, 1.5, 12);
+
+  const facadeInstances: Record<string, THREE.Matrix4[]> = {
+    frontLit: [],
+    frontDark: [],
+    sideLit: [],
+    sideDark: [],
+    sills: [],
+    balconySlabs: [],
+    balconyRails: [],
+    balconySides: []
+  };
+  const instanceDummy = new THREE.Object3D();
+  const queueFacadeInstance = (kind: keyof typeof facadeInstances, x: number, y: number, z: number) => {
+    instanceDummy.position.set(x, y, z);
+    instanceDummy.rotation.set(0, 0, 0);
+    instanceDummy.scale.set(1, 1, 1);
+    instanceDummy.updateMatrix();
+    facadeInstances[kind].push(instanceDummy.matrix.clone());
+  };
+
   const buildingGroup = new THREE.Group();
   scene.add(buildingGroup);
 
@@ -564,7 +596,7 @@ export function buildAlexandriaCity(scene: THREE.Scene): CityEnvironment {
     const rx = -420 + Math.random() * 950;
     const rz = 25 + Math.random() * 220;
 
-    // Check proximity to key landmark centers so buildings don't overlap them
+    // Keep clear space around landmarks.
     let tooClose = false;
     for (const lm of ALEXANDRIA_LANDMARKS) {
       if (Math.hypot(rx - lm.position.x, rz - lm.position.z) < lm.radius + 14) {
@@ -576,22 +608,21 @@ export function buildAlexandriaCity(scene: THREE.Scene): CityEnvironment {
 
     const w = 18 + Math.random() * 22;
     const d = 16 + Math.random() * 20;
-    const h = 24 + Math.random() * 55; // Tall Alexandria Belle Époque buildings
+    const h = 24 + Math.random() * 55;
     const col = buildingColors[Math.floor(Math.random() * buildingColors.length)];
-
     const bMat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.85 });
+
     const bMesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bMat);
     bMesh.position.set(rx, h / 2, rz);
     bMesh.castShadow = true;
     bMesh.receiveShadow = true;
     buildingGroup.add(bMesh);
 
-    // Decorative Rooftop cornice
     const cornice = new THREE.Mesh(new THREE.BoxGeometry(w + 1.2, 1.4, d + 1.2), bMat);
     cornice.position.set(rx, h + 0.7, rz);
     buildingGroup.add(cornice);
 
-    // Ground Floor Storefront Sign
+    // Ground-floor storefront signs retain their unique Arabic artwork.
     if (Math.random() > 0.4) {
       const store = egyptianStores[Math.floor(Math.random() * egyptianStores.length)];
       const signMat = new THREE.MeshBasicMaterial({ map: createStoreSignTexture(store.name, store.sub, store.bg) });
@@ -600,16 +631,7 @@ export function buildAlexandriaCity(scene: THREE.Scene): CityEnvironment {
       buildingGroup.add(signMesh);
     }
 
-    // Individual window bays, shallow balconies and side-facade detail.
-    // Reuse shared geometries/materials to keep the scene practical on mobile GPUs.
     const floors = Math.floor(h / 4.2);
-    const windowGeo = new THREE.BoxGeometry(1.45, 1.55, 0.12);
-    const sideWindowGeo = new THREE.BoxGeometry(0.12, 1.55, 1.35);
-    const balconySlabGeo = new THREE.BoxGeometry(2.25, 0.14, 0.72);
-    const balconyRailGeo = new THREE.BoxGeometry(2.25, 0.12, 0.08);
-    const balconySideGeo = new THREE.BoxGeometry(0.08, 0.48, 0.72);
-    const balconyMat = new THREE.MeshStandardMaterial({ color: 0xd6d3d1, roughness: 0.62, metalness: 0.18 });
-    const sillMat = new THREE.MeshStandardMaterial({ color: 0xb8a58b, roughness: 0.9 });
     const columns = Math.max(2, Math.min(5, Math.floor(w / 5.2)));
     const baySpacing = w / (columns + 1);
     for (let fl = 1; fl < floors; fl++) {
@@ -617,56 +639,64 @@ export function buildAlexandriaCity(scene: THREE.Scene): CityEnvironment {
       for (let colIndex = 1; colIndex <= columns; colIndex++) {
         const x = rx - w / 2 + baySpacing * colIndex;
         const isLit = ((fl * 7 + colIndex * 3 + b) % 5) < 2;
-        const win = new THREE.Mesh(windowGeo, isLit ? windowLitMat : windowDarkMat);
-        win.position.set(x, y, rz - d / 2 - 0.1);
-        buildingGroup.add(win);
+        queueFacadeInstance(isLit ? 'frontLit' : 'frontDark', x, y, rz - d / 2 - 0.1);
+        queueFacadeInstance('sills', x, y - 0.88, rz - d / 2 - 0.13);
 
-        // Stone window sill adds depth instead of flat painted rectangles.
-        const sill = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.12, 0.24), sillMat);
-        sill.position.set(x, y - 0.88, rz - d / 2 - 0.13);
-        buildingGroup.add(sill);
-
-        // A balcony on selected floors gives Alexandria's older apartment blocks a recognizable facade.
         if (colIndex % 2 === 0 && fl > 1 && (b + fl + colIndex) % 3 === 0) {
-          const slab = new THREE.Mesh(balconySlabGeo, balconyMat);
-          slab.position.set(x, y - 0.82, rz - d / 2 - 0.42);
-          buildingGroup.add(slab);
-          const rail = new THREE.Mesh(balconyRailGeo, balconyMat);
-          rail.position.set(x, y - 0.48, rz - d / 2 - 0.76);
-          buildingGroup.add(rail);
+          queueFacadeInstance('balconySlabs', x, y - 0.82, rz - d / 2 - 0.42);
+          queueFacadeInstance('balconyRails', x, y - 0.48, rz - d / 2 - 0.76);
           for (const side of [-1, 1]) {
-            const railSide = new THREE.Mesh(balconySideGeo, balconyMat);
-            railSide.position.set(x + side * 1.08, y - 0.58, rz - d / 2 - 0.42);
-            buildingGroup.add(railSide);
+            queueFacadeInstance('balconySides', x + side * 1.08, y - 0.58, rz - d / 2 - 0.42);
           }
         }
       }
 
-      // Side windows make streets look less like rows of blank boxes when turning.
+      // Side windows add depth without one draw call per window.
       for (const side of [-1, 1]) {
-        const sideWin = new THREE.Mesh(sideWindowGeo, (fl + b + (side > 0 ? 1 : 0)) % 4 === 0 ? windowLitMat : windowDarkMat);
-        sideWin.position.set(rx + side * (w / 2 + 0.07), y, rz);
-        buildingGroup.add(sideWin);
+        const kind = (fl + b + (side > 0 ? 1 : 0)) % 4 === 0 ? 'sideLit' : 'sideDark';
+        queueFacadeInstance(kind, rx + side * (w / 2 + 0.07), y, rz);
       }
     }
 
-    // Rooftop water tank and small service room, common on Egyptian apartment buildings.
+    // Rooftop rooms and water tanks are shared-material objects.
     if (b % 3 === 0) {
-      const rooftopRoom = new THREE.Mesh(
-        new THREE.BoxGeometry(w * 0.32, 2.4, d * 0.34),
-        new THREE.MeshStandardMaterial({ color: 0xc8bba5, roughness: 0.92 })
-      );
+      const rooftopRoom = new THREE.Mesh(new THREE.BoxGeometry(w * 0.32, 2.4, d * 0.34), rooftopRoomMat);
       rooftopRoom.position.set(rx - w * 0.18, h + 1.2, rz);
       rooftopRoom.castShadow = true;
       buildingGroup.add(rooftopRoom);
     }
     if (b % 4 === 0) {
-      const tankMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.38, metalness: 0.22 });
-      const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 1.5, 12), tankMat);
+      const tank = new THREE.Mesh(waterTankGeo, waterTankMat);
       tank.position.set(rx + w * 0.22, h + 1.15, rz + d * 0.18);
       buildingGroup.add(tank);
     }
   }
+
+  const addFacadeBatch = (
+    kind: keyof typeof facadeInstances,
+    geometry: THREE.BufferGeometry,
+    material: THREE.Material
+  ) => {
+    const matrices = facadeInstances[kind];
+    if (matrices.length === 0) return;
+    const batch = new THREE.InstancedMesh(geometry, material, matrices.length);
+    matrices.forEach((matrix, index) => batch.setMatrixAt(index, matrix));
+    batch.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+    batch.instanceMatrix.needsUpdate = true;
+    // Facade details do not need to cast individual shadows; buildings do.
+    batch.castShadow = false;
+    batch.receiveShadow = false;
+    buildingGroup.add(batch);
+  };
+
+  addFacadeBatch('frontLit', windowGeo, windowLitMat);
+  addFacadeBatch('frontDark', windowGeo, windowDarkMat);
+  addFacadeBatch('sideLit', sideWindowGeo, windowLitMat);
+  addFacadeBatch('sideDark', sideWindowGeo, windowDarkMat);
+  addFacadeBatch('sills', sillGeo, sillMat);
+  addFacadeBatch('balconySlabs', balconySlabGeo, balconyMat);
+  addFacadeBatch('balconyRails', balconyRailGeo, balconyMat);
+  addFacadeBatch('balconySides', balconySideGeo, balconyMat);
 
   // 13. Interactive Landmark 3D Floating Beacons (For GPS Navigation & Tourism)
   ALEXANDRIA_LANDMARKS.forEach(lm => {
