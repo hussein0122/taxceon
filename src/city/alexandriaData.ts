@@ -85,11 +85,56 @@ export const ALEXANDRIA_LANDMARKS: Landmark[] = [
   },
   {
     id: 'gleem_montaza',
-    nameAr: 'جليم والمنتزه',
-    nameEn: 'Gleem Bay & El Montaza',
-    descriptionAr: 'شواطئ جليم الساحرة وبوابة حدائق قصر المنتزه الملكي المورقة.',
+    nameAr: 'خليج جليم',
+    nameEn: 'Gleem Bay',
+    descriptionAr: 'خليج جليم وشاطئه الصغير والمباني السكنية المطلة على البحر.',
     position: { x: 490, y: 0, z: -60 },
-    radius: 32,
+    radius: 30,
+    type: 'beach'
+  },
+  {
+    id: 'san_stefano',
+    nameAr: 'سان ستيفانو',
+    nameEn: 'San Stefano',
+    descriptionAr: 'منطقة ساحلية تضم مباني سكنية وفنادق ومركز سان ستيفانو.',
+    position: { x: 555, y: 0, z: -54 },
+    radius: 28,
+    type: 'beach'
+  },
+  {
+    id: 'miami',
+    nameAr: 'ميامي',
+    nameEn: 'Miami',
+    descriptionAr: 'منطقة شاطئية سكنية شرق الإسكندرية على امتداد الكورنيش.',
+    position: { x: 620, y: 0, z: -49 },
+    radius: 28,
+    type: 'beach'
+  },
+  {
+    id: 'sidi_bishr',
+    nameAr: 'سيدي بشر',
+    nameEn: 'Sidi Bishr',
+    descriptionAr: 'منطقة سكنية ساحلية ذات شوارع جانبية ومحلات محلية.',
+    position: { x: 670, y: 0, z: -50 },
+    radius: 28,
+    type: 'beach'
+  },
+  {
+    id: 'asafra',
+    nameAr: 'العصافرة',
+    nameEn: 'Asafra',
+    descriptionAr: 'منطقة العصافرة على الطريق الساحلي شرق الإسكندرية.',
+    position: { x: 710, y: 0, z: -53 },
+    radius: 27,
+    type: 'beach'
+  },
+  {
+    id: 'montaza',
+    nameAr: 'حدائق المنتزه',
+    nameEn: 'Montaza Gardens',
+    descriptionAr: 'المنتزه وحدائقه الساحلية في الطرف الشرقي من مسار اللعب.',
+    position: { x: 745, y: 0, z: -78 },
+    radius: 38,
     type: 'beach'
   },
   {
@@ -134,7 +179,12 @@ export const ALEXANDRIA_ROADS: RoadSegment[] = [
       { x: 375, z: -105, width: 20, lanes: 4, isCorniche: true },  // Stanley Bridge Span
       { x: 420, z: -95, width: 22, lanes: 4, isCorniche: true },   // Stanley Exit
       { x: 480, z: -75, width: 24, lanes: 4, isCorniche: true },   // Gleem
-      { x: 540, z: -65, width: 24, lanes: 4, isCorniche: true }    // Towards Montaza
+      { x: 540, z: -65, width: 24, lanes: 4, isCorniche: true },   // San Stefano approach
+      { x: 590, z: -58, width: 24, lanes: 4, isCorniche: true },   // San Stefano / Miami
+      { x: 630, z: -52, width: 24, lanes: 4, isCorniche: true },   // Miami
+      { x: 675, z: -50, width: 22, lanes: 4, isCorniche: true },   // Sidi Bishr
+      { x: 715, z: -56, width: 22, lanes: 4, isCorniche: true },   // Asafra
+      { x: 750, z: -64, width: 22, lanes: 4, isCorniche: true }    // Montaza entrance
     ]
   },
   // 2. Inland Avenue: Tareeq El Horreya / Fouad Street (Avenue of Freedom)
@@ -149,7 +199,11 @@ export const ALEXANDRIA_ROADS: RoadSegment[] = [
       { x: 160, z: 65, width: 20, lanes: 2 }, // Sporting
       { x: 260, z: 85, width: 22, lanes: 4 }, // Sidi Gaber Station
       { x: 360, z: 50, width: 20, lanes: 2 }, // Cleo / Roushdy inland
-      { x: 460, z: 15, width: 18, lanes: 2 }  // San Stefano connection
+      { x: 460, z: 15, width: 18, lanes: 2 }, // San Stefano connection
+      { x: 530, z: 18, width: 18, lanes: 2 },
+      { x: 600, z: 12, width: 18, lanes: 2 }, // Miami inland streets
+      { x: 665, z: 5, width: 18, lanes: 2 },  // Sidi Bishr
+      { x: 720, z: 12, width: 18, lanes: 2 }  // Montaza access
     ]
   },
   // 3. Mansheya to Port connector
@@ -207,7 +261,56 @@ export const ALEXANDRIA_ROADS: RoadSegment[] = [
       { x: 360, z: 50, width: 16, lanes: 2 }
     ]
   }
+  // 8. East Corniche links into the inland neighborhood grid.
+  {
+    id: 'miami_connector',
+    nameAr: 'شارع ميامي الداخلي',
+    speedLimit: 40,
+    points: [
+      { x: 620, z: -49, width: 16, lanes: 2 },
+      { x: 615, z: -15, width: 16, lanes: 2 },
+      { x: 600, z: 12, width: 16, lanes: 2 }
+    ]
+  },
+  {
+    id: 'sidi_bishr_connector',
+    nameAr: 'محور سيدي بشر',
+    speedLimit: 40,
+    points: [
+      { x: 670, z: -50, width: 16, lanes: 2 },
+      { x: 672, z: -18, width: 16, lanes: 2 },
+      { x: 665, z: 5, width: 16, lanes: 2 }
+    ]
+  },
+  {
+    id: 'montaza_connector',
+    nameAr: 'مدخل حدائق المنتزه',
+    speedLimit: 35,
+    points: [
+      { x: 745, z: -72, width: 18, lanes: 2 },
+      { x: 742, z: -28, width: 18, lanes: 2 },
+      { x: 720, z: 12, width: 18, lanes: 2 }
+    ]
+  }
 ];
+
+// Fixed stops for the microbus line, ordered from Montaza toward Bahary / Qaitbay.
+export const MICROBUS_ROUTE_STOP_IDS = [
+  'montaza',
+  'asafra',
+  'sidi_bishr',
+  'miami',
+  'san_stefano',
+  'gleem_montaza',
+  'stanley',
+  'sidi_gaber',
+  'shatby',
+  'library',
+  'raml',
+  'mansheya',
+  'anfoushi',
+  'qaitbay'
+] as const;
 
 // Realistic Egyptian passenger archetypes & destination pairings
 export const PASSENGER_POOL = [
