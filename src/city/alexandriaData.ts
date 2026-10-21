@@ -260,7 +260,7 @@ export const ALEXANDRIA_ROADS: RoadSegment[] = [
       { x: 395, z: -30, width: 16, lanes: 2 },
       { x: 360, z: 50, width: 16, lanes: 2 }
     ]
-  }
+  },
   // 8. East Corniche links into the inland neighborhood grid.
   {
     id: 'miami_connector',
