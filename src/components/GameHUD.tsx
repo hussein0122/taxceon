@@ -4,8 +4,8 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { ActiveTrip, CameraViewMode, Passenger, TaxiStats, TimeOfDay } from '../types/game';
-import { ALEXANDRIA_LANDMARKS, ALEXANDRIA_ROADS } from '../city/alexandriaData';
+import { ActiveTrip, CameraViewMode, Passenger, TaxiStats, TimeOfDay, VehicleMode } from '../types/game';
+import { ALEXANDRIA_LANDMARKS, ALEXANDRIA_ROADS, MICROBUS_ROUTE_STOP_IDS } from '../city/alexandriaData';
 import {
   Camera,
   Compass,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 
 interface GameHUDProps {
+  vehicleMode: VehicleMode;
   stats: TaxiStats;
   activeTrip: ActiveTrip | null;
   availablePassenger: Passenger | null;
@@ -42,6 +43,7 @@ interface GameHUDProps {
 }
 
 export const GameHUD: React.FC<GameHUDProps> = ({
+  vehicleMode,
   stats,
   activeTrip,
   availablePassenger,
@@ -86,7 +88,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
     // Draw Mediterranean Sea (North)
     ctx.fillStyle = '#0284c7';
-    ctx.fillRect(-600 * scale, (-300 - playerPos.z) * scale, 1200 * scale, 200 * scale);
+    ctx.fillRect(-800 * scale, (-300 - playerPos.z) * scale, 1600 * scale, 200 * scale);
 
     // Draw Roads Network
     ctx.lineCap = 'round';
@@ -112,7 +114,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
       ctx.beginPath();
       ctx.arc(lx, lz, 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = lm.type === 'gas' ? '#10b981' : '#38bdf8';
+      ctx.fillStyle = lm.type === 'gas' ? '#10b981' : vehicleMode === 'microbus' && (MICROBUS_ROUTE_STOP_IDS as readonly string[]).includes(lm.id) ? '#f97316' : '#38bdf8';
       ctx.fill();
     });
 
@@ -146,7 +148,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     ctx.translate(w / 2, h / 2);
 
     // Player arrow
-    ctx.fillStyle = '#facc15'; // Alexandria taxi yellow
+    ctx.fillStyle = vehicleMode === 'microbus' ? '#38bdf8' : '#facc15'; // Vehicle mode color
     ctx.strokeStyle = '#0f172a';
     ctx.lineWidth = 1.5;
 
@@ -160,7 +162,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     ctx.stroke();
 
     ctx.restore();
-  }, [playerPos, activeTrip]);
+  }, [playerPos, activeTrip, vehicleMode]);
 
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-3 md:p-5 select-none font-sans">
@@ -169,7 +171,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         {/* Alexandria Digital Taximeter */}
         <div className="pointer-events-auto bg-slate-900/85 backdrop-blur-md border border-amber-500/40 rounded-2xl p-3 shadow-xl min-w-[155px] text-right">
           <div className="flex items-center justify-between text-xs text-slate-400 font-semibold mb-1">
-            <span>العداد السكندري</span>
+            <span>{vehicleMode === 'microbus' ? 'أجرة خط الميكروباص' : 'العداد السكندري'}</span>
             <span className="text-amber-400">ج.م</span>
           </div>
           <div className="font-kufi text-3xl font-black text-amber-400 tracking-tight">
@@ -190,6 +192,23 @@ export const GameHUD: React.FC<GameHUDProps> = ({
           {sayMessage && (
             <div className="pointer-events-auto bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-2xl shadow-xl text-center text-sm md:text-base border border-amber-300 animate-in fade-in zoom-in duration-200">
               {sayMessage}
+            </div>
+          )}
+
+          {vehicleMode === 'microbus' && (
+            <div className="pointer-events-auto w-full rounded-2xl border border-sky-400/50 bg-slate-950/90 p-3 text-right shadow-xl backdrop-blur-md">
+              <div className="mb-1 text-xs font-black text-sky-300">🚐 خط الكورنيش — اتجاه بحري</div>
+              <div className="text-[10px] leading-5 text-slate-200">
+                {MICROBUS_ROUTE_STOP_IDS.map((stopId, index) => {
+                  const stop = ALEXANDRIA_LANDMARKS.find(landmark => landmark.id === stopId);
+                  return stop ? (
+                    <span key={stopId}>
+                      {stop.nameAr}{index < MICROBUS_ROUTE_STOP_IDS.length - 1 ? ' ← ' : ''}
+                    </span>
+                  ) : null;
+                })}
+              </div>
+              <div className="mt-1 text-[10px] text-sky-200/80">الخط داخل نسخة اللعبة التقريبية من المنتزه إلى بحري وقلعة قايتباي.</div>
             </div>
           )}
 
