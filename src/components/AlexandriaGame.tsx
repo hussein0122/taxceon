@@ -13,9 +13,10 @@ import {
   GraphicSettings,
   Passenger,
   TaxiStats,
-  TimeOfDay
+  TimeOfDay,
+  VehicleMode
 } from '../types/game';
-import { createAlexandriaTaxi, TaxiVehicleMesh } from '../city/vehicleModels';
+import { createAlexandriaMicrobus, createAlexandriaTaxi, TaxiVehicleMesh } from '../city/vehicleModels';
 import { buildAlexandriaCity, CityEnvironment } from '../city/cityBuilder';
 import { TaxiPhysicsEngine } from '../sim/physicsEngine';
 import { TrafficAndPedestrianSystem } from '../sim/trafficSystem';
@@ -27,12 +28,14 @@ import { GarageModal } from './GarageModal';
 import { SettingsModal } from './SettingsModal';
 
 interface AlexandriaGameProps {
+  vehicleMode: VehicleMode;
   stats: TaxiStats;
   setStats: React.Dispatch<React.SetStateAction<TaxiStats>>;
   onSaveProgress: () => void;
 }
 
 export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
+  vehicleMode,
   stats,
   setStats,
   onSaveProgress
@@ -46,7 +49,7 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('sunset'); // Default to glorious Alexandria sunset!
   const [cameraMode, setCameraMode] = useState<CameraViewMode>('chase');
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [sayMessage, setSayMessage] = useState<string | null>('أهلاً بك في تاكسي الإسكندرية! دوّر على زبون أو اطلب رحلة.');
+  const [sayMessage, setSayMessage] = useState<string | null>(vehicleMode === 'microbus' ? 'أهلاً بك في ميكروباص الإسكندرية! اتبع خط الكورنيش واستقبل الركاب.' : 'أهلاً بك في تاكسي الإسكندرية! دوّر على زبون أو اطلب رحلة.');
   const [canRefuel, setCanRefuel] = useState<boolean>(false);
   const [refuelCost, setRefuelCost] = useState<number>(0);
   const [isGarageOpen, setIsGarageOpen] = useState<boolean>(false);
@@ -230,7 +233,9 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
     const cityEnv: CityEnvironment = buildAlexandriaCity(scene);
 
     // 5. Hero Player Taxi Model
-    let playerTaxiMesh: TaxiVehicleMesh = createAlexandriaTaxi(statsRef.current.paintStyle);
+    let playerTaxiMesh: TaxiVehicleMesh = vehicleMode === 'microbus'
+      ? createAlexandriaMicrobus()
+      : createAlexandriaTaxi(statsRef.current.paintStyle);
     scene.add(playerTaxiMesh);
 
     // Headlights spot cones for night driving
@@ -313,7 +318,8 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
         playerTaxiMesh,
         statsRef.current,
         camera,
-        cameraModeRef.current
+        cameraModeRef.current,
+        vehicleMode
       );
 
       const pState = physics.state;
@@ -476,7 +482,7 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
       const detail = error instanceof Error ? error.message : String(error);
       setGameError('تعذر تهيئة مشهد اللعبة ثلاثي الأبعاد: ' + detail);
     }
-  }, [timeOfDay, graphicSettings.shadows, graphicSettings.trafficDensity]);
+  }, [timeOfDay, graphicSettings.shadows, graphicSettings.trafficDensity, vehicleMode]);
 
   // Handle passenger acceptance
   const handleAcceptPassenger = () => {
@@ -559,6 +565,7 @@ export const AlexandriaGame: React.FC<AlexandriaGameProps> = ({
 
       {/* Floating Arabic Game HUD Overlay */}
       <GameHUD
+        vehicleMode={vehicleMode}
         stats={stats}
         activeTrip={activeTrip}
         availablePassenger={availablePassenger}
