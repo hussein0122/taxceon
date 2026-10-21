@@ -3,25 +3,39 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ActiveTrip, Passenger, TaxiStats } from '../types/game';
-import { ALEXANDRIA_LANDMARKS, PASSENGER_POOL } from '../city/alexandriaData';
+import { ActiveTrip, Passenger, TaxiStats, VehicleMode } from '../types/game';
+import { ALEXANDRIA_LANDMARKS, MICROBUS_ROUTE_STOP_IDS, PASSENGER_POOL } from '../city/alexandriaData';
 import { soundEngine } from '../audio/soundEngine';
 
 export class TaxiMissionSystem {
   public activeTrip: ActiveTrip | null = null;
   public availablePassenger: Passenger | null = null;
   private tripIndex: number = 0;
+  private readonly vehicleMode: VehicleMode;
 
-  constructor() {
+  constructor(vehicleMode: VehicleMode = 'taxi') {
+    this.vehicleMode = vehicleMode;
     this.spawnNextPassenger();
   }
 
   public spawnNextPassenger() {
-    const template = PASSENGER_POOL[this.tripIndex % PASSENGER_POOL.length];
+    const requestIndex = this.tripIndex;
+    const template = PASSENGER_POOL[requestIndex % PASSENGER_POOL.length];
     this.tripIndex++;
 
-    const pickupLm = ALEXANDRIA_LANDMARKS.find(l => l.id === template.pickupId) || ALEXANDRIA_LANDMARKS[3];
-    const dropoffLm = ALEXANDRIA_LANDMARKS.find(l => l.id === template.dropoffId) || ALEXANDRIA_LANDMARKS[7];
+    let pickupId = template.pickupId;
+    let dropoffId = template.dropoffId;
+    if (this.vehicleMode === 'microbus') {
+      // A line service moves one stop at a time from Montaza to Qaitbay,
+      // then reverses direction without duplicating the terminal stops.
+      const eastToWest = [...MICROBUS_ROUTE_STOP_IDS];
+      const lineLoop = [...eastToWest, ...eastToWest.slice(1, -1).reverse()];
+      pickupId = lineLoop[requestIndex % lineLoop.length];
+      dropoffId = lineLoop[(requestIndex + 1) % lineLoop.length];
+    }
+
+    const pickupLm = ALEXANDRIA_LANDMARKS.find(l => l.id === pickupId) || ALEXANDRIA_LANDMARKS[3];
+    const dropoffLm = ALEXANDRIA_LANDMARKS.find(l => l.id === dropoffId) || ALEXANDRIA_LANDMARKS[7];
 
     const distEstimate = Math.hypot(
       pickupLm.position.x - dropoffLm.position.x,
@@ -44,9 +58,11 @@ export class TaxiMissionSystem {
         z: dropoffLm.position.z,
         nameAr: dropoffLm.nameAr
       },
-      quoteAr: template.quoteAr,
-      fareBase: 15.0, // 15 EGP Alexandria flag drop
-      farePerKm: 5.5, // 5.5 EGP / km
+      quoteAr: this.vehicleMode === 'microbus'
+        ? `نازل عند ${dropoffLm.nameAr} يا أسطى، خليك ماشي على خط الكورنيش.`
+        : template.quoteAr,
+      fareBase: this.vehicleMode === 'microbus' ? 5.0 : 15.0,
+      farePerKm: this.vehicleMode === 'microbus' ? 2.2 : 5.5
       urgency: template.urgency,
       personality: template.personality
     };
