@@ -62,7 +62,7 @@ export class TaxiMissionSystem {
         ? `نازل عند ${dropoffLm.nameAr} يا أسطى، خليك ماشي على خط الكورنيش.`
         : template.quoteAr,
       fareBase: this.vehicleMode === 'microbus' ? 5.0 : 15.0,
-      farePerKm: this.vehicleMode === 'microbus' ? 2.2 : 5.5
+      farePerKm: this.vehicleMode === 'microbus' ? 2.2 : 5.5,
       urgency: template.urgency,
       personality: template.personality
     };
