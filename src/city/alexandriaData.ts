@@ -133,7 +133,7 @@ export const ALEXANDRIA_LANDMARKS: Landmark[] = [
     nameAr: 'حدائق المنتزه',
     nameEn: 'Montaza Gardens',
     descriptionAr: 'المنتزه وحدائقه الساحلية في الطرف الشرقي من مسار اللعب.',
-    position: { x: 745, y: 0, z: -78 },
+    position: { x: 745, y: 0, z: -70 },
     radius: 38,
     type: 'beach'
   },
