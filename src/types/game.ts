@@ -38,6 +38,9 @@ export type TimeOfDay = 'day' | 'sunset' | 'night';
 
 export type CameraViewMode = 'chase' | 'hood' | 'top' | 'cinematic';
 
+/** Player-controlled vehicle selected before the session starts. */
+export type VehicleMode = 'taxi' | 'microbus';
+
 export interface Passenger {
   id: string;
   nameAr: string;
