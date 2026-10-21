@@ -64,6 +64,12 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 }) => {
   const miniMapRef = useRef<HTMLCanvasElement | null>(null);
   const speedKmh = Math.abs(Math.round(playerPos.speed * 3.6));
+  const nextMicrobusStopX = activeTrip
+    ? activeTrip.passenger.dropoffLocation.x
+    : availablePassenger?.pickupLocation.x;
+  const microbusDirection = nextMicrobusStopX === undefined
+    ? (playerPos.x > 0 ? 'اتجاه بحري' : 'اتجاه المنتزه')
+    : nextMicrobusStopX < playerPos.x ? 'اتجاه بحري' : 'اتجاه المنتزه';
 
   // Render Alexandria GPS Minimap
   useEffect(() => {
@@ -197,7 +203,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
           {vehicleMode === 'microbus' && (
             <div className="pointer-events-auto w-full rounded-2xl border border-sky-400/50 bg-slate-950/90 p-3 text-right shadow-xl backdrop-blur-md">
-              <div className="mb-1 text-xs font-black text-sky-300">🚐 خط الكورنيش — اتجاه بحري</div>
+              <div className="mb-1 text-xs font-black text-sky-300">🚐 خط الكورنيش — {microbusDirection}</div>
               <div className="text-[10px] leading-5 text-slate-200">
                 {MICROBUS_ROUTE_STOP_IDS.map((stopId, index) => {
                   const stop = ALEXANDRIA_LANDMARKS.find(landmark => landmark.id === stopId);
