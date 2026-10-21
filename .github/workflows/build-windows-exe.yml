@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: TypeScript type check
+        run: npm run lint
+
       - name: Build packaged game and NSIS installer
         run: npm run build:desktop
 
