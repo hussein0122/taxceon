@@ -121,14 +121,14 @@ export function buildAlexandriaCity(scene: THREE.Scene): CityEnvironment {
   scene.add(sea);
 
   // Sandy Beach along coastal curve
-  const beachGeo = new THREE.PlaneGeometry(1200, 80);
+  const beachGeo = new THREE.PlaneGeometry(1650, 90);
   const beachMat = new THREE.MeshStandardMaterial({
     color: 0xf3dca3,
     roughness: 0.96
   });
   const beach = new THREE.Mesh(beachGeo, beachMat);
   beach.rotation.x = -Math.PI / 2;
-  beach.position.set(80, -0.05, -135);
+  beach.position.set(150, -0.05, -135);
   scene.add(beach);
 
   // 3. Roads Network Mesh Construction
@@ -592,8 +592,8 @@ export function buildAlexandriaCity(scene: THREE.Scene): CityEnvironment {
   const buildingGroup = new THREE.Group();
   scene.add(buildingGroup);
 
-  for (let b = 0; b < 140; b++) {
-    const rx = -420 + Math.random() * 950;
+  for (let b = 0; b < 170; b++) {
+    const rx = -420 + Math.random() * 1160;
     const rz = 25 + Math.random() * 220;
 
     // Keep clear space around landmarks.
