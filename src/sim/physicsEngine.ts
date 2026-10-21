@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three';
-import { CameraViewMode, ControlState, TaxiStats } from '../types/game';
+import { CameraViewMode, ControlState, TaxiStats, VehicleMode } from '../types/game';
 import { TaxiVehicleMesh } from '../city/vehicleModels';
 import { soundEngine } from '../audio/soundEngine';
 
@@ -45,15 +45,18 @@ export class TaxiPhysicsEngine {
     taxiMesh: TaxiVehicleMesh,
     stats: TaxiStats,
     camera: THREE.PerspectiveCamera,
-    cameraMode: CameraViewMode
+    cameraMode: CameraViewMode,
+    vehicleMode: VehicleMode = 'taxi'
   ) {
     const dt = Math.min(delta, 0.05);
 
     // 1. Upgrade Multipliers
-    const maxSpeedKmh = 75 + (stats.speedLevel - 1) * 12; // 75 - 123 km/h
-    const maxSpeed = maxSpeedKmh / 3.6; // In m/s
-    const accelPower = 15 + (stats.accelLevel - 1) * 3.5; // Acceleration force
-    const brakePower = 24 + (stats.brakeLevel - 1) * 5.0; // Braking force
+    // A passenger microbus has a higher body and more weight: slower response and
+    // a lower top speed than the upgraded taxi, while retaining the same controls.
+    const maxSpeedKmh = (vehicleMode === 'microbus' ? 88 : 75) + (stats.speedLevel - 1) * (vehicleMode === 'microbus' ? 7 : 12);
+    const maxSpeed = maxSpeedKmh / 3.6;
+    const accelPower = (vehicleMode === 'microbus' ? 10.5 : 15) + (stats.accelLevel - 1) * (vehicleMode === 'microbus' ? 2.2 : 3.5);
+    const brakePower = (vehicleMode === 'microbus' ? 22 : 24) + (stats.brakeLevel - 1) * 5.0;
 
     // Fuel check: if empty, engine stalls
     const hasFuel = stats.fuel > 0;
@@ -73,8 +76,8 @@ export class TaxiPhysicsEngine {
       } else if (this.state.speed < -0.5) {
         targetAccel = brakePower;
       } else {
-        // Reverse if stopped and holding brake
-        targetAccel = -accelPower * 0.5;
+        // Brake is a brake. Reverse is selected explicitly with R / the touch gear.
+        targetAccel = 0;
       }
     } else if (controls.handbrake) {
       targetAccel = -brakePower * 1.6;
@@ -102,8 +105,8 @@ export class TaxiPhysicsEngine {
     }
 
     // 3. Steering Dynamics
-    const maxSteer = 0.58; // ~33 degrees
-    const steerSpeed = 4.2;
+    const maxSteer = vehicleMode === 'microbus' ? 0.46 : 0.58;
+    const steerSpeed = vehicleMode === 'microbus' ? 3.1 : 4.2;
     let targetSteer = 0;
 
     if (controls.left) targetSteer += maxSteer;
@@ -114,8 +117,8 @@ export class TaxiPhysicsEngine {
     // Yaw rate is proportional to speed and steer angle (Ackermann approximation)
     if (Math.abs(this.state.speed) > 0.1) {
       const turnMultiplier = this.state.speed >= 0 ? 1 : -1;
-      const effectiveWheelbase = 2.8;
-      const driftBonus = 1 + this.state.driftFactor * 0.8;
+      const effectiveWheelbase = vehicleMode === 'microbus' ? 3.35 : 2.8;
+      const driftBonus = 1 + this.state.driftFactor * (vehicleMode === 'microbus' ? 0.35 : 0.8);
       const yawRate = (this.state.speed / effectiveWheelbase) * Math.tan(this.state.steerAngle) * turnMultiplier * driftBonus;
       this.state.yaw += yawRate * dt;
     }
@@ -129,7 +132,7 @@ export class TaxiPhysicsEngine {
 
     // Boundary constraints (Keep player inside Alexandria playable zone)
     const minX = -450;
-    const maxX = 560;
+    const maxX = 760;
     const minZ = -195; // Seaside barrier
     const maxZ = 240;  // Inland city boundary
 
@@ -140,7 +143,7 @@ export class TaxiPhysicsEngine {
       this.triggerCollision();
     }
 
-    // Stanley Bridge elevation curve (lifts taxi ~3.5m over Stanley Bay)
+    // Stanley Bridge elevation curve (lifts the selected vehicle over Stanley Bay)
     if (this.state.x > 340 && this.state.x < 420 && this.state.z < -80 && this.state.z > -125) {
       const bridgeCenter = 380;
       const distFromCenter = Math.abs(this.state.x - bridgeCenter);
@@ -153,7 +156,9 @@ export class TaxiPhysicsEngine {
     // 5. Suspension Dynamics (Chassis Roll & Pitch)
     // Lateral roll during cornering
     const lateralG = (this.state.speed * this.state.steerAngle) / 22;
-    const targetRoll = THREE.MathUtils.clamp(lateralG * 0.35, -0.15, 0.15);
+    const rollScale = vehicleMode === 'microbus' ? 0.48 : 0.35;
+    const maxRoll = vehicleMode === 'microbus' ? 0.2 : 0.15;
+    const targetRoll = THREE.MathUtils.clamp(lateralG * rollScale, -maxRoll, maxRoll);
     this.state.roll = THREE.MathUtils.damp(this.state.roll, targetRoll, 8, dt);
 
     // Pitch during acceleration / hard braking
@@ -173,16 +178,18 @@ export class TaxiPhysicsEngine {
     const wheelCircumference = 2 * Math.PI * 0.42;
     const wheelRotDelta = (this.state.speed * dt) / wheelCircumference * Math.PI * 2;
 
-    if (taxiMesh.frontLeftWheel) {
-      taxiMesh.frontLeftWheel.rotation.x += wheelRotDelta;
-      taxiMesh.frontLeftWheel.rotation.y = this.state.steerAngle;
-    }
-    if (taxiMesh.frontRightWheel) {
-      taxiMesh.frontRightWheel.rotation.x += wheelRotDelta;
-      taxiMesh.frontRightWheel.rotation.y = this.state.steerAngle;
-    }
-    if (taxiMesh.rearLeftWheel) taxiMesh.rearLeftWheel.rotation.x += wheelRotDelta;
-    if (taxiMesh.rearRightWheel) taxiMesh.rearRightWheel.rotation.x += wheelRotDelta;
+    const spinWheel = (wheel?: THREE.Group) => {
+      if (!wheel) return;
+      const spinGroup = wheel.userData.spinGroup as THREE.Group | undefined;
+      if (spinGroup) spinGroup.rotation.z += wheelRotDelta;
+      else wheel.rotation.z += wheelRotDelta;
+    };
+    if (taxiMesh.frontLeftWheel) taxiMesh.frontLeftWheel.rotation.y = this.state.steerAngle;
+    if (taxiMesh.frontRightWheel) taxiMesh.frontRightWheel.rotation.y = this.state.steerAngle;
+    spinWheel(taxiMesh.frontLeftWheel);
+    spinWheel(taxiMesh.frontRightWheel);
+    spinWheel(taxiMesh.rearLeftWheel);
+    spinWheel(taxiMesh.rearRightWheel);
 
     // 7. Update Engine Sound Pitch
     const speedRatio = this.state.speed / maxSpeed;
